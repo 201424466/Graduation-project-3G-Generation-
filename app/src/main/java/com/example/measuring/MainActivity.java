@@ -60,10 +60,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     JavaCameraView javaCameraView;
     private Mat matInput;
     private Mat matResult;
-    private int cameraType = 1;
+    private int cameraType = 0;  //1은 전방 type camera, 0은 후방 type camera
     Mat img, imgGray, imgCanny, imgHSV, threshold;
     int counter = 0;
-
+    public native long loadCascade(String cascadeFileName);
     private final Semaphore writeLock = new Semaphore(1);
 
     public void getWriteLock() throws InterruptedException{
@@ -75,7 +75,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     }
 
     static{
-        System.loadLibrary("Desktop");
+        System.loadLibrary("opencv_java3");
+        System.loadLibrary("native-lib");
     }
 
     public void copyFile(String filename) {
@@ -91,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             Log.i(TAG, "copyFile :: 다음 경로로 파일복사 "+ pathDir);
             inputStream = assetManager.open(filename);
             outputStream = new FileOutputStream(pathDir);
+
             byte[] buffer = new byte[1024];
             int read;
             while ((read = inputStream.read(buffer)) != -1) {
@@ -109,19 +111,18 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     //출처: https://deepdeepit.tistory.com/30#recentEntries [Deep Deep IT]
 
 
-
     BaseLoaderCallback mLoaderCallBack = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
                 case BaseLoaderCallback.SUCCESS: {
                     javaCameraView.enableView();
-                    break;
-                }
+
+                }break;
                 default: {
                     super.onManagerConnected(status);
-                    break;
-                }
+
+                }break;
             }
         }
     };
@@ -163,6 +164,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         javaCameraView = (JavaCameraView) findViewById(R.id.java_camera_view);
         javaCameraView.setVisibility(SurfaceView.VISIBLE);
         javaCameraView.setCvCameraViewListener(this);
+
+        javaCameraView.setCameraIndex(0);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             //퍼미션 상태 확인
@@ -229,6 +232,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onResume();
         if (OpenCVLoader.initDebug()) {
             Log.i(TAG, "OpenCV loaded successfully");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallBack);
             mLoaderCallBack.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
         else {
