@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 #opencv library
-OPENCVROOT:= D:\AndroidStudioProject\Measuring\opencv
+OPENCVROOT:= C:\Users\kin4u\Desktop\Graduation-project-3G-Generation-\opencv
 
 OPENCV_CAMERA_MODULES:=on
 OPENCV_INSTALL_MODULES:=on

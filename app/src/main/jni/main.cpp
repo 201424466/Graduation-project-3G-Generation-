@@ -22,4 +22,22 @@ extern "C"{
 
 
       }
+}extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_example_measuring_MainActivity_loadCascade(JNIEnv *env, jobject instance,
+                                                    jstring cascadeFileName_) {
+    const char *cascadeFileName = env->GetStringUTFChars(cascadeFileName_, 0);
+
+    // TODO
+
+    env->ReleaseStringUTFChars(cascadeFileName_, cascadeFileName);
+}extern "C"
+JNIEXPORT void JNICALL
+Java_com_example_measuring_MainActivity_detect(JNIEnv *env, jobject instance,
+                                               jlong casacadeClassifier_face,
+                                               jlong cascadeClassifier_eye, jlong matAddrInput,
+                                               jlong matAddrResult) {
+
+    // TODO
+
 }
