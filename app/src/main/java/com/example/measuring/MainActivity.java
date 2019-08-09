@@ -2,25 +2,20 @@ package com.example.measuring;
 
 import android.annotation.TargetApi;
 import android.content.DialogInterface;
-import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceView;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.Button;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -36,17 +31,11 @@ import org.opencv.core.Point;
 import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
     /*
@@ -58,58 +47,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     */
     private static String TAG = "MainActivity";
     JavaCameraView javaCameraView;
-    private Mat matInput;
-    private Mat matResult;
-    private int cameraType = 0;  //1은 전방 type camera, 0은 후방 type camera
     Mat img, imgGray, imgCanny, imgHSV, threshold;
     int counter = 0;
-    public native long loadCascade(String cascadeFileName);
-    private final Semaphore writeLock = new Semaphore(1);
-
-    public void getWriteLock() throws InterruptedException{
-        writeLock.acquire();
-    }
-
-    public void releaseWriteLock() {
-        writeLock.release();
-    }
-
-    static{
-        System.loadLibrary("opencv_java3");
-        System.loadLibrary("native-lib");
-    }
-
-    public void copyFile(String filename) {
-        String baseDir = Environment.getExternalStorageDirectory().getPath();
-        String pathDir = baseDir + File.separator +filename;
-
-        AssetManager assetManager = this.getAssets();
-
-        InputStream inputStream = null;
-        OutputStream outputStream = null;
-
-        try {
-            Log.i(TAG, "copyFile :: 다음 경로로 파일복사 "+ pathDir);
-            inputStream = assetManager.open(filename);
-            outputStream = new FileOutputStream(pathDir);
-
-            byte[] buffer = new byte[1024];
-            int read;
-            while ((read = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, read);
-            }
-            inputStream.close();
-            inputStream = null;
-            outputStream.flush();
-            outputStream.close();
-            outputStream = null;
-        } catch (Exception e) {
-            Log.i(TAG, "copyFile :: 파일 복사 중 예외 발생 "+e.toString() );
-        }
-    }
-
-    //출처: https://deepdeepit.tistory.com/30#recentEntries [Deep Deep IT]
-
 
     BaseLoaderCallback mLoaderCallBack = new BaseLoaderCallback(this) {
         @Override
@@ -117,28 +56,22 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             switch (status) {
                 case BaseLoaderCallback.SUCCESS: {
                     javaCameraView.enableView();
-
-                }break;
+                    break;
+                }
                 default: {
                     super.onManagerConnected(status);
-
-                }break;
+                    break;
+                }
             }
         }
     };
 
+    static { }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN); //모든 화면 장식(상태표시줄 등)이 창이 표시되는 동안 사라진다.
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // 사용자가 윈도우를 표시할 대 화면을 밝게 해준다.
         setContentView(R.layout.activity_main);
-
-
-
         /*
         // 가속도/자이로 센서 사용
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -164,9 +97,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         javaCameraView = (JavaCameraView) findViewById(R.id.java_camera_view);
         javaCameraView.setVisibility(SurfaceView.VISIBLE);
         javaCameraView.setCvCameraViewListener(this);
-
-        javaCameraView.setCameraIndex(0);
-
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             //퍼미션 상태 확인
             if (!hasPermissions(PERMISSIONS)) {
@@ -174,35 +105,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 requestPermissions(PERMISSIONS, PERMISSIONS_REQUEST_CODE);
             }
         }
+    }
 
-        Button button = (Button)findViewById(R.id.Capture);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+    @Override
+    public void onConfigurationChanged(Configuration newConfig){
+        super.onConfigurationChanged(newConfig);
+        if(newConfig.orientation==Configuration.ORIENTATION_PORTRAIT){
+            //세로 전환
+        }else if(newConfig.orientation==Configuration.ORIENTATION_LANDSCAPE){
+            //r가로 전환
+        }
 
-                try{
-                    getWriteLock();
-
-                    File path = new File(Environment.getExternalStorageDirectory() + "/Images/");
-                    path.mkdirs();
-                    File file  = new File(path, "image.png");
-
-                    String filename = file.toString();
-
-                    Imgproc.cvtColor(matResult, matResult, Imgproc.COLOR_BGR2RGB, 4);
-                    boolean ret = Imgcodecs.imwrite( filename, matResult);
-                    if ( ret ) Log.i(TAG, "SUCESS");
-                    else Log.i(TAG, "FAIL");
-                    Intent mediaScanIntent = new Intent( Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-                    mediaScanIntent.setData(Uri.fromFile(file));
-                    sendBroadcast(mediaScanIntent);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                releaseWriteLock();
-            }
-        });
     }
 
     @Override
@@ -232,7 +145,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onResume();
         if (OpenCVLoader.initDebug()) {
             Log.i(TAG, "OpenCV loaded successfully");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallBack);
             mLoaderCallBack.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
         else {
