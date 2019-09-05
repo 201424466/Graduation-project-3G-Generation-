@@ -19,7 +19,7 @@
         android:layout_gravity="right">
 
         <Button
-            android:id="@+id/Estimate"
+            android:id="@+id/BtnEstimate"
             android:layout_width="110dp"
             android:layout_height="wrap_content"
             android:paddingStart="20dp"
